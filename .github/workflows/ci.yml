@@ -1,0 +1,23 @@
+name: C++ CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    # 1. Скачиваем код из репозитория
+    - uses: actions/checkout@v4
+
+    # 2. Компилируем код
+    - name: Compile
+      run: g++ -std=c++17 main.cpp -o ip_filter
+
+    # 3. Запускаем тест с MD5
+    - name: Run test
+      run: |
+        cat ip_filter.tsv | ./ip_filter | md5sum > result.md5
+        echo "Calculated MD5:"
+        cat result.md5
+        # Проверяем хэш
+        grep -q "24e7a7b2270daee89c64d3ca5fb3da1a" result.md5
