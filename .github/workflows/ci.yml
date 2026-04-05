@@ -11,7 +11,7 @@ jobs:
 
     # 2. Компилируем код
     - name: Compile
-      run: g++ -std=c++17 main.cpp -o ip_filter
+      run: g++ -std=c++17 ip_filter.cpp -o ip_filter
 
     # 3. Запускаем тест с MD5
     - name: Run test
