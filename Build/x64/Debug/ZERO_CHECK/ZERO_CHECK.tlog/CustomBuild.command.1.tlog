@@ -1,0 +1,10 @@
+^D:\TASK_2\02_HOMEWORK-12995-FB7660\BUILD\CMAKEFILES\836EB6A6C2F8256B3FFFEEE0E731377B\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/Task_2/02_homework-12995-fb7660 -BD:/Task_2/02_homework-12995-fb7660/Build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file D:/Task_2/02_homework-12995-fb7660/Build/ip_filter.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

@@ -1,0 +1,4 @@
+﻿  ip_filter.cpp
+D:\Task_2\02_homework-12995-fb7660\ip_filter.cpp(86,32): warning C4100: 'argv': unreferenced formal parameter
+D:\Task_2\02_homework-12995-fb7660\ip_filter.cpp(86,14): warning C4100: 'argc': unreferenced formal parameter
+  ip_filter.vcxproj -> D:\Task_2\02_homework-12995-fb7660\Build\Debug\ip_filter.exe

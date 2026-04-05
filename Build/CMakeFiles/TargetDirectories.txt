@@ -1,0 +1,3 @@
+D:/Task_2/02_homework-12995-fb7660/Build/CMakeFiles/ip_filter.dir
+D:/Task_2/02_homework-12995-fb7660/Build/CMakeFiles/ALL_BUILD.dir
+D:/Task_2/02_homework-12995-fb7660/Build/CMakeFiles/ZERO_CHECK.dir
