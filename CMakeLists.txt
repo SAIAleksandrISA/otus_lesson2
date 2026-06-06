@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 
 project(ip_filter  VERSION 1.0.0)
-add_executable(ip_filter ip_filter.cpp)
-
+add_executable(ip_filter main.cpp ip_filter.cpp)
 
 if (MSVC)
     target_compile_options(ip_filter PRIVATE
@@ -23,5 +22,10 @@ endif()
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/version.h.in" 
     "${CMAKE_BINARY_DIR}/version.h"          
+)
+
+target_include_directories(ip_filter PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}"      
+    "${CMAKE_BINARY_DIR}"
 )
 target_include_directories(ip_filter PRIVATE "${CMAKE_BINARY_DIR}")

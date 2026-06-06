@@ -1,52 +1,79 @@
+#include <ip_filter.h>
 #include <cassert>
 #include <cstdlib>
-#include <iostream>
-#include <string>
-#include <vector>
 #include <algorithm>
-#include <fstream>
+#include <iostream>
+#include <initializer_list>
 
-// ("",  '.') -> [""]
-// ("11", '.') -> ["11"]
-// ("..", '.') -> ["", "", ""]
-// ("11.", '.') -> ["11", ""]
-// (".11", '.') -> ["", "11"]
-// ("11.22", '.') -> ["11", "22"]
-std::vector<std::string> splitLine(const std::string &str, char d)
+bool isValidIpPart(int part) 
 {
-    std::vector<std::string> r;
+    return part >= 0 && part <= 255;
+}
 
+template <typename T, typename Converter>
+std::vector<T> split(const std::string& str, char d, Converter conv)
+{
+    std::vector<T> result;
     std::string::size_type start = 0;
     std::string::size_type stop = str.find_first_of(d);
-    while(stop != std::string::npos)
+    while (stop != std::string::npos)
     {
-        r.push_back(str.substr(start, stop - start));
-
+        std::string part_str = str.substr(start, stop - start);
+        if (part_str.empty())
+        {
+            throw std::invalid_argument("Invalid IP address format: empty part detected between delimiters.");
+        }
+        try
+        {
+            result.push_back(conv(part_str));
+        }
+        catch (const std::exception& e)
+        {
+            throw std::runtime_error("Failed to convert part '" + part_str + "' from string '" + str + "': " + e.what());
+        }
         start = stop + 1;
         stop = str.find_first_of(d, start);
     }
+    std::string last_part_str = str.substr(start);
+    if (last_part_str.empty())
+    {
+        throw std::invalid_argument("Invalid IP address format: empty part detected at the end of string.");
+    }
+    try
+    {
+        result.push_back(conv(last_part_str));
+    }
+    catch (const std::exception& e)
+    {
+        throw std::runtime_error("Failed to convert last part '" + last_part_str + "' from string '" + str + "': " + e.what());
+    }
 
-    r.push_back(str.substr(start));
+    return result;
+}
 
-    return r;
+auto string_identity_converter = [](const std::string& s) -> std::string 
+{
+    return s;
+};
+
+auto ip_part_converter = [](const std::string& s) -> int 
+{
+    int part = std::stoi(s);
+    if (!isValidIpPart(part))
+    {
+        throw std::out_of_range("IP part value out of range (0-255).");
+    }
+    return part;
+};
+
+std::vector<std::string> splitLine(const std::string &str, char d)
+{
+    return split<std::string>(str, d, string_identity_converter);
 }
 
 std::vector<int> splitPart(const std::string &str, char d)
 {
-    std::vector<int> vPart;
-
-    std::string::size_type start = 0;
-    std::string::size_type stop = str.find_first_of(d);
-    while(stop != std::string::npos)
-    {
-        vPart.push_back(std::stoi(str.substr(start, stop - start)));
-
-        start = stop + 1;
-        stop = str.find_first_of(d, start);
-    }
-    vPart.push_back(std::stoi(str.substr(start)));
-
-    return vPart;
+    return split<int>(str, d, ip_part_converter);
 }
 
 void print_ip(const std::vector<int>& ip) 
@@ -59,16 +86,39 @@ void print_ip(const std::vector<int>& ip)
     std::cout << std::endl;
 }
 
-void filter(const std::vector<std::vector<int>>& ip_pool, int nByte1=-1 , int nByte2=-1)
+void filter(const std::vector<std::vector<int>>& ip_pool, std::initializer_list<int> filters)
 {
+    if (ip_pool.empty()) 
+        return;
+
+    if (filters.size() == 0)
+    {
+         for(const auto& ip : ip_pool)
+             print_ip(ip);
+         return;
+    }
+    
+    if (filters.size() > 4) 
+        return; 
+
+    std::vector<int> filter_prefix(filters);
+
     for (const auto& ip : ip_pool)
     {
-        if (nByte1 != -1)
+        bool match = true;
+        for (size_t i = 0; i < filter_prefix.size(); ++i)
         {
-            if (nByte1 != ip[0]) continue;
-            if (nByte2 != -1 && nByte2 != ip[1]) continue;
+            if (i >= ip.size() || ip[i] != filter_prefix[i])
+            {
+                match = false;
+                break;
+            }
         }
-        print_ip(ip);
+
+        if (match)
+        {
+            print_ip(ip);
+        }
     }
 }
 
@@ -81,99 +131,4 @@ void filter_any(const std::vector<std::vector<int>>& ip_pool, int nAnyByte)
             print_ip(ip);
         }
     }
-}
-
-int main(int argc, char const *argv[])
-{
-    try
-    {
-        //std::ifstream file("..//ip_filter.tsv"); 
-        //std::ifstream file("..//output.txt"); 
-        //if (!file.is_open()) 
-       // {
-        //    std::cerr << "Ошибка открытия файла!" << std::endl;
-         //   return 1;
-        //}
-
-        std::vector<std::vector<int>> vIP;
-
-        for(std::string line; std::getline(std::cin, line);)
-        {
-            auto vLine = splitLine(line, '\t');
-            vIP.push_back(splitPart(vLine.at(0), '.'));
-        }
-
-        std::sort(vIP.begin(), vIP.end(), std::greater<std::vector<int>>());
-
-        // TODO reverse lexicographically sort
-        filter(vIP);
-        // 222.173.235.246
-        // 222.130.177.64
-        // 222.82.198.61
-        // ...
-        // 1.70.44.170
-        // 1.29.168.152
-        // 1.1.234.8
-
-        // TODO filter by first byte and output
-        filter(vIP, 1);
-
-        // 1.231.69.33
-        // 1.87.203.225
-        // 1.70.44.170
-        // 1.29.168.152
-        // 1.1.234.8
-
-        // TODO filter by first and second bytes and output
-        filter(vIP, 46, 70);
-
-        // 46.70.225.39
-        // 46.70.147.26
-        // 46.70.113.73
-        // 46.70.29.76
-
-        // TODO filter by any byte and output
-        filter_any(vIP, 46);
-
-        // 186.204.34.46
-        // 186.46.222.194
-        // 185.46.87.231
-        // 185.46.86.132
-        // 185.46.86.131
-        // 185.46.86.131
-        // 185.46.86.22
-        // 185.46.85.204
-        // 185.46.85.78
-        // 68.46.218.208
-        // 46.251.197.23
-        // 46.223.254.56
-        // 46.223.254.56
-        // 46.182.19.219
-        // 46.161.63.66
-        // 46.161.61.51
-        // 46.161.60.92
-        // 46.161.60.35
-        // 46.161.58.202
-        // 46.161.56.241
-        // 46.161.56.203
-        // 46.161.56.174
-        // 46.161.56.106
-        // 46.161.56.106
-        // 46.101.163.119
-        // 46.101.127.145
-        // 46.70.225.39
-        // 46.70.147.26
-        // 46.70.113.73
-        // 46.70.29.76
-        // 46.55.46.98
-        // 46.49.43.85
-        // 39.46.86.85
-        // 5.189.203.46
-    }
-    catch(const std::exception &e)
-    {
-        std::cerr << e.what() << std::endl;
-    }
-    std::cin;
-    return 0;
 }
